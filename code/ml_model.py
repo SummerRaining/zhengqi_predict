@@ -128,9 +128,23 @@ class ml_model(object):
     def predict(self,X_test):
         return self.model.predict(X_test)
     
+    def dump_result(self,x):
+        #将预测的结果导出
+        if not os.path.exists("../result"):
+            os.makedirs("../result")
+       
+        print("generate predicting result!")     
+        y_update = self.predict(x)
+        result = "\n".join([str(x) for x in y_update])
+
+        path = "../result/{}_result.txt".format(self.name)
+        with open(path,'w') as f:
+            f.write(result)  
+    
     def _print_analyse(self,x_test,y_test,save_img = False):
         y_pred = self.predict(x_test)
         print_analyse(y_test,y_pred,name = self.name) #打印分析模型性能的图形,后续定义。
+        
         
 class ensemble_model(object):
     def __init__(self,models,name):
@@ -143,18 +157,33 @@ class ensemble_model(object):
             pred = model.predict(X_test)
             preds.append(pred.reshape(-1,1))
         
-        pred = np.concatenate(pred,axis = -1)
-        return np.mean(pred,axis = -1)
+        preds = np.concatenate(preds,axis = -1)
+        return np.mean(preds,axis = -1)
             
     def _print_analyse(self,x_test,y_test):
         y_pred = self.predict(x_test)
         print_analyse(y_test,y_pred,name = self.name)
+        
+    def dump_result(self,x):
+        #将预测的结果导出
+        if not os.path.exists("../result"):
+            os.makedirs("../result")
+       
+        print("generate predicting result!")     
+        y_update = self.predict(x)
+        result = "\n".join([str(x) for x in y_update])
+
+        path = "../result/{}_result.txt".format(self.name)
+        with open(path,'w') as f:
+            f.write(result)  
 
 
 
 if __name__ == '__main__':
     #获取数据，训练数据和验证数据。
     train_data = pd.read_csv("../inputs/zhengqi_train.txt",sep = '\t')
+    x_update = pd.read_csv("../inputs/zhengqi_test.txt",sep = '\t').values
+  
     X = train_data.values[:,:-1]
     y = train_data.values[:,-1]
     #没有打乱
@@ -174,6 +203,7 @@ if __name__ == '__main__':
     light_model = ml_model(LGBMRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'lightgbm')
     light_model.fit(X_train,y_train)
     light_model._print_analyse(X_test,y_test)
+    light_model.dump_result(x_update)
     
     #xgboost
     adj_dict = {'n_estimators':(50,500),'max_depth':(5,20),'subsample':(0.5,1),
@@ -184,6 +214,7 @@ if __name__ == '__main__':
     xgb_model = ml_model(XGBRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'xgboost')
     xgb_model.fit(X_train,y_train)
     xgb_model._print_analyse(X_test,y_test)
+    xgb_model.dump_result(x_update)
     
     #adaboost
     adj_dict = {"learning_rate":(0.001,0.3),'n_estimators':(50,500)}
@@ -192,6 +223,7 @@ if __name__ == '__main__':
     ada_model = ml_model(AdaBoostRegressor,adj_dict,params_dict,int_feature=int_feature,name = 'adaboost')
     ada_model.fit(X_train,y_train)
     ada_model._print_analyse(X_test,y_test)
+    ada_model.dump_result(x_update)
     
     #gbdt
     adj_dict = {'max_depth':(5,15),'min_samples_split':(0.0001,0.01),
@@ -201,6 +233,7 @@ if __name__ == '__main__':
     gbdt_model = ml_model(GradientBoostingRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'gbdt')
     gbdt_model.fit(X_train,y_train)
     gbdt_model._print_analyse(X_test,y_test)
+    gbdt_model.dump_result(x_update)
         
     #random forest
     adj_dict = {"max_depth":(5,11),'n_estimators':(50,500)}
@@ -209,6 +242,7 @@ if __name__ == '__main__':
     rf_model = ml_model(RandomForestRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'rf')
     rf_model.fit(X_train,y_train)
     rf_model._print_analyse(X_test,y_test)
+    rf_model.dump_result(x_update)
     
     #extra_tree
     adj_dict = {'max_depth':(5,50),'max_features':(0.5,1.0),'min_samples_leaf':(5,30),
@@ -219,22 +253,20 @@ if __name__ == '__main__':
     et_model = ml_model(ExtraTreesRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'extra_tree')
     et_model.fit(X_train,y_train)
     et_model._print_analyse(X_test,y_test)
+    et_model.dump_result(x_update)
     
     #SVM
     adj_dict = {"C":(0.01,1000),'gamma':(0.001,1),'tol':(0.001,1.)}
-    params_dict = {'shrinking':True, 'kernel':'rbf','probability':True,'max_iter':-1}
+    params_dict = {'shrinking':True, 'kernel':'rbf','max_iter':-1}
     svm_model = ml_model(SVR,adj_dict,params_dict,int_feature=[],name = 'svm')
     svm_model.fit(X_train,y_train)
     svm_model._print_analyse(X_test,y_test)
+    svm_model.dump_result(x_update)
     
     #集成
     e_model = ensemble_model(models = [light_model,xgb_model,ada_model,gbdt_model,rf_model,xgb_model,svm_model],
-                             name = 'ml model ensemble')
+                             name = 'model_ensemble')
     e_model._print_analyse(X_test,y_test)
+    e_model.dump_result(x_update)
+    
 
-    #导出预测结果
-    x_update = pd.read_csv("../inputs/zhengqi_test.txt",sep = '\t')
-    y_update = light_model.predict(x_update.values)
-    result = "\n".join([str(x) for x in y_update])
-    with open("../result.txt",'w') as f:
-        f.write(result)    

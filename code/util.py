@@ -21,3 +21,4 @@ def print_analyse(ytrue,ypred,name):
     rmse = mean_squared_error(ytrue,ypred)
     print("\n\n"+"*"*10+" {} ".format(name)+"*"*10)
     print("均方误差为{:.4f}".format(rmse))
+    
