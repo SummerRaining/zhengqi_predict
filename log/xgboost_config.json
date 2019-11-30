@@ -1,0 +1,1 @@
+{"target": -0.11519644966913263, "params": {"learning_rate": 0.1, "min_child_weight": 1, "seed": 0, "colsample_bytree": 0.8, "gamma": 0, "silent": 1, "max_depth": 5, "n_estimators": 498, "reg_alpha": 0.9292203658381823, "reg_lambda": 0.14093179873391168, "subsample": 0.6901630803232504}}
