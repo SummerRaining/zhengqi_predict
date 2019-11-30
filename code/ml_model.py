@@ -232,11 +232,9 @@ if __name__ == '__main__':
                              name = 'ml model ensemble')
     e_model._print_analyse(X_test,y_test)
 
-# =============================================================================
-#     #导出预测结果
-#     x_update = pd.read_csv("../inputs/zhengqi_test.txt",sep = '\t')
-#     y_update = light_model.predict(x_update.values)
-#     result = "\t".join([str(x) for x in y_update])
-#     with open("../result.txt",'w') as f:
-#         f.write(result)    
-# =============================================================================
+    #导出预测结果
+    x_update = pd.read_csv("../inputs/zhengqi_test.txt",sep = '\t')
+    y_update = light_model.predict(x_update.values)
+    result = "\n".join([str(x) for x in y_update])
+    with open("../result.txt",'w') as f:
+        f.write(result)    
