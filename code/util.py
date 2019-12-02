@@ -18,7 +18,8 @@ def print_analyse(ytrue,ypred,name):
         ytrue,yproba(array)
     '''
     #计算auc的值
-    rmse = mean_squared_error(ytrue,ypred)
-    print("\n\n"+"*"*10+" {} ".format(name)+"*"*10)
-    print("均方误差为{:.4f}".format(rmse))
+    mse = mean_squared_error(ytrue,ypred)
+    print("*"*10+" {} ".format(name)+"*"*10)
+    print("{}验证集上的均方误差为{:.4f}".format(name,mse))
+
     

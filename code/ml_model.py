@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from bayes_opt import BayesianOptimization
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.metrics import mean_squared_error
 
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import RobustScaler
@@ -20,10 +21,9 @@ from sklearn.linear_model import LogisticRegression
 
 from sklearn.svm import SVR
 from lightgbm import LGBMRegressor
-from xgboost import XGBRegressor 
+from xgboost import XGBRegressor,plot_importance
 #from sklearn.base import BaseEstimator, TransformerMixin, RegressorMixin, clone
 from sklearn.ensemble import GradientBoostingRegressor,ExtraTreesRegressor,AdaBoostRegressor,RandomForestRegressor
-from util import print_analyse
 
 class ml_model(object):
     '''
@@ -123,6 +123,8 @@ class ml_model(object):
         else:
             print("loading {} model from file".format(self.name))
             model = pickle.load(open(self.model_path,'rb'))
+            self.result = json.load(open(self.log_path,'r'))  #将最佳参数和结果也导出来
+        
         self.model = model
 
     def predict(self,X_test):
@@ -143,7 +145,9 @@ class ml_model(object):
     
     def _print_analyse(self,x_test,y_test,save_img = False):
         y_pred = self.predict(x_test)
-        print_analyse(y_test,y_pred,name = self.name) #打印分析模型性能的图形,后续定义。
+        mse = mean_squared_error(y_test,y_pred)
+        print("{}交叉验证结果:{:.4f},验证集上结果:{:.4f}".format(\
+              self.name,self.result['target'],mse))
         
         
 class ensemble_model(object):
@@ -162,7 +166,9 @@ class ensemble_model(object):
             
     def _print_analyse(self,x_test,y_test):
         y_pred = self.predict(x_test)
-        print_analyse(y_test,y_pred,name = self.name)
+        mse = mean_squared_error(y_test,y_pred)
+        print("{}验证集上结果:{:.4f}".format(self.name,mse))
+        
         
     def dump_result(self,x):
         #将预测的结果导出
@@ -186,7 +192,7 @@ if __name__ == '__main__':
   
     X = train_data.values[:,:-1]
     y = train_data.values[:,-1]
-    #没有打乱
+    #打乱了
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
     print("X_train shape is {}".format(X_train.shape))
@@ -195,7 +201,7 @@ if __name__ == '__main__':
     print("y_test shape is {}".format(y_test.shape))
         
     #lightgbm
-    adj_dict = {'max_depth':(5,15),'n_estimators':(50,500),'learning_rate':(0.001,0.1),
+    adj_dict = {'max_depth':(5,50),'n_estimators':(50,500),'learning_rate':(0.001,0.1),
                 'num_leaves':(32,512),'min_child_samples':(20,100),'min_child_weight':(0.001,0.1),
                 'feature_fraction':(0.5,1),'bagging_fraction':(0.5,1),'reg_alpha':(0,0.5),'reg_lambda':(0,0.5)}
     params_dict = {'objective':"regression" ,'max_bin':200,'verbose':1,'metric':['rmse']}
@@ -206,27 +212,17 @@ if __name__ == '__main__':
     light_model.dump_result(x_update)
     
     #xgboost
-    adj_dict = {'n_estimators':(50,500),'max_depth':(5,20),'subsample':(0.5,1),
-                'reg_alpha':(0.1,1),'reg_lambda':(0.1,1)}
-    params_dict = {'learning_rate':0.1,  'min_child_weight':1, 'seed':0,
-                   'colsample_bytree':0.8, 'gamma':0,'silent':1}
+    adj_dict = {'n_estimators':(50,500),'max_depth':(3,50),'subsample':(0.5,1),
+                'reg_alpha':(0.1,1),'reg_lambda':(0.1,1),'learning_rate':(0.001,0.3)}
+    params_dict = {'min_child_weight':1, 'seed':0,'colsample_bytree':0.8, 'gamma':0,'silent':1}
     int_feature = ['n_estimators','max_depth']
     xgb_model = ml_model(XGBRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'xgboost')
     xgb_model.fit(X_train,y_train)
     xgb_model._print_analyse(X_test,y_test)
     xgb_model.dump_result(x_update)
     
-    #adaboost
-    adj_dict = {"learning_rate":(0.001,0.3),'n_estimators':(50,500)}
-    params_dict = {"random_state":1}
-    int_feature = ["n_estimators"]
-    ada_model = ml_model(AdaBoostRegressor,adj_dict,params_dict,int_feature=int_feature,name = 'adaboost')
-    ada_model.fit(X_train,y_train)
-    ada_model._print_analyse(X_test,y_test)
-    ada_model.dump_result(x_update)
-    
     #gbdt
-    adj_dict = {'max_depth':(5,15),'min_samples_split':(0.0001,0.01),
+    adj_dict = {'max_depth':(3,50),'min_samples_split':(0.0001,0.01),
                 'subsample':(0.5,1),'learning_rate':(0.0001,0.1),'n_estimators':(50,500)}
     params_dict = {'random_state':1,'max_features':'sqrt','verbose':0}
     int_feature = ['max_depth','n_estimators']
@@ -236,7 +232,7 @@ if __name__ == '__main__':
     gbdt_model.dump_result(x_update)
         
     #random forest
-    adj_dict = {"max_depth":(5,11),'n_estimators':(50,500)}
+    adj_dict = {"max_depth":(3,50),'n_estimators':(50,500)}
     params_dict = {'verbose':0}
     int_feature = ['max_depth','n_estimators']
     rf_model = ml_model(RandomForestRegressor,adj_dict,params_dict,int_feature = int_feature,name = 'rf')
@@ -246,7 +242,7 @@ if __name__ == '__main__':
     
     #extra_tree
     adj_dict = {'max_depth':(5,50),'max_features':(0.5,1.0),'min_samples_leaf':(5,30),
-                'min_samples_split':(10,70),'n_estimators':(50,500)}
+                'min_samples_split':(10,70) ,'n_estimators':(50,500)}
     params_dict = {'max_leaf_nodes':None,'min_impurity_decrease':0.0,
                    'min_weight_fraction_leaf':0,'bootstrap':False}
     int_feature = ['n_estimators','max_depth','min_samples_leaf','min_samples_split']
@@ -254,19 +250,41 @@ if __name__ == '__main__':
     et_model.fit(X_train,y_train)
     et_model._print_analyse(X_test,y_test)
     et_model.dump_result(x_update)
-    
-    #SVM
-    adj_dict = {"C":(0.01,1000),'gamma':(0.001,1),'tol':(0.001,1.)}
-    params_dict = {'shrinking':True, 'kernel':'rbf','max_iter':-1}
-    svm_model = ml_model(SVR,adj_dict,params_dict,int_feature=[],name = 'svm')
-    svm_model.fit(X_train,y_train)
-    svm_model._print_analyse(X_test,y_test)
-    svm_model.dump_result(x_update)
-    
+        
     #集成
-    e_model = ensemble_model(models = [light_model,xgb_model,ada_model,gbdt_model,rf_model,xgb_model,svm_model],
+    e_model = ensemble_model(models = [light_model,xgb_model,gbdt_model,rf_model,xgb_model],
                              name = 'model_ensemble')
     e_model._print_analyse(X_test,y_test)
     e_model.dump_result(x_update)
     
+# =============================================================================
+#     #SVM
+#     adj_dict = {"C":(0.01,1000),'gamma':(0.001,1),'tol':(0.001,1.)}
+#     params_dict = {'shrinking':True, 'kernel':'rbf','max_iter':-1}
+#     svm_model = ml_model(SVR,adj_dict,params_dict,int_feature=[],name = 'svm')
+#     svm_model.fit(X_train,y_train)
+#     svm_model._print_analyse(X_test,y_test)
+#     svm_model.dump_result(x_update)
+# 
+#     #adaboost
+#     adj_dict = {"learning_rate":(0.001,0.3),'n_estimators':(50,500)}
+#     params_dict = {"random_state":1}
+#     int_feature = ["n_estimators"]
+#     ada_model = ml_model(AdaBoostRegressor,adj_dict,params_dict,int_feature=int_feature,name = 'adaboost')
+#     ada_model.fit(X_train,y_train)
+#     ada_model._print_analyse(X_test,y_test)
+#     ada_model.dump_result(x_update)
+# =============================================================================
+    
 
+# =============================================================================
+#     plot_importance(xgb_model.model)
+#     from matplotlib import pyplot
+#     pyplot.show()
+#     importance = xgb_model.model.feature_importances_
+#     print(pd.DataFrame({
+#             'column': train_data.columns[:-1],
+#             'importance': importance,
+#         }).sort_values(by='importance'))
+# =============================================================================
+    
