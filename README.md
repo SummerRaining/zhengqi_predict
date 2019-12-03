@@ -35,8 +35,6 @@ svm验证集上的均方误差为0.0928;5折交叉验证0.1101，线上得分0.9
 	2. 展示所有特征在训练集和测试集上的特征分布，然后删除分布不一致的特征。<看完了，未实验和总结代码>
 	3. 使用模型拟合后，查看残差大于3sigma的样本点。作为异常点删除。思考是对所有的模型进行，还是只有这个模型这样做。<看完了，未实验和总结代码>
 	
-3. https://tianchi.aliyun.com/notebook-ai/detail?spm=5176.12282029.0.0.6a8ffa50ySlL3U&postId=60069
 
-4. https://files.pythonhosted.org/packages/2a/5c/f1d66de5dde6f3ff528f6ea1fd0757a0e594d17debb3ec7f82daa967ea9a/tensorflow-2.0.0-cp37-cp37m-manylinux2010_x86_64.whl 
 
 
