@@ -38,5 +38,5 @@ svm验证集上的均方误差为0.0928;5折交叉验证0.1101，线上得分0.9
 3. https://tianchi.aliyun.com/notebook-ai/detail?spm=5176.12282029.0.0.6a8ffa50ySlL3U&postId=60069
 
 4. tensorflow2.0的包 https://files.pythonhosted.org/packages/a1/eb/bc0784af18f612838f90419cf4805c37c20ddb957f5ffe0c42144562dcfa/tensorflow_gpu-2.0.0-cp37-cp37m-manylinux2010_x86_64.whl
-
+5. https://files.pythonhosted.org/packages/82/c0/371cf368e2d8b1b7bcf9f9bafd7cec962487e654ad8296d8e0ad62011537/protobuf-3.11.0-cp37-cp37m-manylinux1_x86_64.whl
 
